@@ -1,14 +1,12 @@
 import javafx.util.Pair;
 
 import java.util.HashMap;
-import java.util.concurrent.Semaphore;
 
 public class TicketService {
 
     private Theater theater;
     private HashMap<String, SeatHold> seatHoldMap;
     private HashMap<String, SeatHold> seatReserveMap;
-    static Semaphore semaphore = new Semaphore(1);
 
     /** * The number of seats in the venue that are neither held nor reserved
      *
@@ -25,15 +23,6 @@ public class TicketService {
      * @return a SeatHold object identifying the specific seats and related information
      */
     SeatHold findAndHoldSeats(int numSeats, String customerEmail) {
-        try{
-            semaphore.acquire();
-        }
-        catch (InterruptedException E){
-            E.printStackTrace();
-        }
-        finally {
-            semaphore.release();
-        }
         return new SeatHold();
     }
 
@@ -43,20 +32,10 @@ public class TicketService {
      * @param customerEmail the email address of the customer to which the seat hold is assigned
      * @return a reservation confirmation code */
     String reserveSeats(int seatHoldId, String customerEmail) {
-        try{
-            semaphore.acquire();
-            SeatHold seatHold = seatHoldMap.get(seatHoldId);
-            for (Pair location : seatHold.getSeatList()){
-                theater.setSeat(location, Seat.Reserved);
-            }
+        SeatHold seatHold = seatHoldMap.get(seatHoldId);
+        for (Pair location : seatHold.getSeatList()) {
+            theater.setSeat(location, Seat.Reserved);
         }
-        catch (InterruptedException E){
-            E.printStackTrace();
-        }
-        finally {
-            semaphore.release();
-        }
-
         return new String();
     }
 }
