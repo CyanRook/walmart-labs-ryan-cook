@@ -1,5 +1,6 @@
 import javafx.util.Pair;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class TicketService {
@@ -7,6 +8,24 @@ public class TicketService {
     private Theater theater;
     private HashMap<String, SeatHold> seatHoldMap;
     private HashMap<String, SeatHold> seatReserveMap;
+
+    public TicketService(ArrayList<Integer> rowSeatCount){
+        theater = new Theater(rowSeatCount);
+        seatHoldMap = new HashMap<>();
+        seatReserveMap = new HashMap<>();
+    }
+
+    public Theater getTheater() {
+        return theater;
+    }
+
+    public HashMap<String, SeatHold> getSeatHoldMap() {
+        return seatHoldMap;
+    }
+
+    public HashMap<String, SeatHold> getSeatReserveMap() {
+        return seatReserveMap;
+    }
 
     /** * The number of seats in the venue that are neither held nor reserved
      *

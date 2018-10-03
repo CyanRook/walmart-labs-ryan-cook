@@ -11,6 +11,9 @@ public class Theater {
         seatsRemaining = 0;
         for (Integer rowCount: rowSeatCount) {
             ArrayList<Seat> row = new ArrayList<>(rowCount);
+            for (int i = 0; i < rowCount; i++){
+                row.add(Seat.Available);
+            }
             seats.add(row);
             seatsRemaining += rowCount;
         }
