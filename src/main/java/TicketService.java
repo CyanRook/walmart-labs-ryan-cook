@@ -1,13 +1,14 @@
 import javafx.util.Pair;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 
 public class TicketService {
 
     private Theater theater;
     private HashMap<String, SeatHold> seatHoldMap;
     private HashMap<String, SeatHold> seatReserveMap;
+    private HashMap<String, HashSet<String>> emailToHoldId;
+    private HashMap<String, HashSet<String>> emailToReserveId;
 
     public TicketService(ArrayList<Integer> rowSeatCount){
         theater = new Theater(rowSeatCount);
@@ -32,7 +33,7 @@ public class TicketService {
      * @return the number of tickets available in the venue
      */
     int numSeatsAvailable() {
-        return 0;
+        return theater.getSeatsRemaining();
     }
 
     /** * Find and hold the best available seats for a customer
@@ -41,7 +42,33 @@ public class TicketService {
      * @param customerEmail unique identifier for the customer
      * @return a SeatHold object identifying the specific seats and related information
      */
-    SeatHold findAndHoldSeats(int numSeats, String customerEmail) {
+    SeatHold findAndHoldSeats(int numSeats, String customerEmail) throws Exception {
+        /* Identify ideal seats
+           Criteria Used
+           1. Contiguous Seats
+           2. Towards the Front
+           3. Towards the Center
+        */
+        ArrayList<Pair<Integer, Integer>> seats;
+        seats = theater.findContigousSeats(numSeats);
+        if (seats == null){
+            seats = theater.findSeats(numSeats);
+        }
+        if (seats == null){
+            throw new Exception("Not Enough Seats");
+        }
+        // Generate a new Hold ID
+        String holdId = UUID.randomUUID().toString();
+        SeatHold seatHold = new SeatHold();
+        seatHold.setSeatList(seats);
+        seatHold.setCustomerEmail(customerEmail);
+        seatHold.setHoldId(holdId);
+        if (emailToHoldId.containsKey(customerEmail)) {
+            emailToHoldId.get(customerEmail).add(holdId);
+        }
+        else {
+            emailToHoldId.put(customerEmail, new HashSet<>(Arrays.asList(holdId)));
+        }
         return new SeatHold();
     }
 
@@ -51,10 +78,27 @@ public class TicketService {
      * @param customerEmail the email address of the customer to which the seat hold is assigned
      * @return a reservation confirmation code */
     String reserveSeats(int seatHoldId, String customerEmail) {
+        // Get the SeatHold Object
         SeatHold seatHold = seatHoldMap.get(seatHoldId);
+        // Turn the Seats from Held to Reserved
         for (Pair location : seatHold.getSeatList()) {
             theater.setSeat(location, Seat.Reserved);
         }
-        return new String();
+        // Generate a new Confirmation Code
+        String confirmationCode = UUID.randomUUID().toString();
+        // Add the SeatHold object to a mpa with the confirmation code to enable seat lookup by confirmation code
+        seatReserveMap.put(confirmationCode, seatHold);
+        // Allow Reservation lookup by email
+        if (emailToReserveId.containsKey(customerEmail)) {
+            emailToReserveId.get(customerEmail).add(confirmationCode);
+        }
+        else {
+            emailToReserveId.put(customerEmail, new HashSet<>(Arrays.asList(confirmationCode)));
+        }
+        // Remove HoldID from Email look up as it is no longer in held
+        emailToHoldId.get(customerEmail).remove(confirmationCode);
+        // Remove the SeatHold object from the map
+        seatHoldMap.remove(seatHoldId);
+        return confirmationCode;
     }
 }
