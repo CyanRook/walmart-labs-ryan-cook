@@ -84,8 +84,8 @@ public class Theater {
         // Check each Row starting at the front
         for (ArrayList row : seats) {
             rowId += 1;
-            Integer leftSearch = row.size() / 2;
-            Integer rightSearch = (row.size() + 1) / 2;
+            Integer leftSearch = (row.size()-1) / 2;
+            Integer rightSearch = row.size() / 2;
             while ((leftSearch >= 0) && (rightSearch <= row.size()-1)){
                 if (row.get(leftSearch) == Seat.Available){
                     seatList.add(new Pair<>(rowId, leftSearch));
@@ -93,7 +93,7 @@ public class Theater {
                 if (seatList.size() == count){
                     break;
                 }
-                if ((row.get(rightSearch) == Seat.Available) && (leftSearch != rightSearch)){
+                if ((row.get(rightSearch) == Seat.Available) && (!leftSearch.equals(rightSearch))){
                     seatList.add(new Pair<>(rowId, rightSearch));
                 }
                 if (seatList.size() == count){
@@ -114,6 +114,12 @@ public class Theater {
         }
     }
 
+    public void releaseSeats(ArrayList<Pair<Integer, Integer>> seatList) {
+        for (Pair seat : seatList){
+            setSeat(seat, Seat.Available);
+        }
+    }
+
     public void holdSeats(ArrayList<Pair<Integer, Integer>> seatList) throws Exception{
         for (Pair seat : seatList){
             if (getSeat(seat) != Seat.Available) {
@@ -125,8 +131,8 @@ public class Theater {
 
     public void reserveSeats(ArrayList<Pair<Integer, Integer>> seatList) throws Exception{
         for (Pair seat : seatList){
-            if (getSeat(seat) != Seat.Available) {
-                throw new Exception("Trying to Reserve an Unavailable Seat");
+            if (getSeat(seat) != Seat.Held) {
+                throw new Exception("Trying to Reserve an Unheld Seat");
             }
             setSeat(seat, Seat.Reserved);
         }

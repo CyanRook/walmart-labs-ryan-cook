@@ -1,5 +1,6 @@
 import javafx.util.Pair;
 
+import java.time.Instant;
 import java.util.*;
 
 public class TicketService {
@@ -9,6 +10,10 @@ public class TicketService {
     private HashMap<String, SeatHold> seatReserveMap;
     private HashMap<String, HashSet<String>> emailToHoldId;
     private HashMap<String, HashSet<String>> emailToReserveId;
+    private ArrayList<Pair<String, Long>> holdExpirationList;
+    private Integer holdLifetime;
+    private Timer timer;
+    private TimerTask task;
 
     public TicketService(ArrayList<Integer> rowSeatCount){
         theater = new Theater(rowSeatCount);
@@ -16,6 +21,36 @@ public class TicketService {
         seatReserveMap = new HashMap<>();
         emailToHoldId = new HashMap<>();
         emailToReserveId = new HashMap<>();
+        holdExpirationList = new ArrayList<>();
+        holdLifetime = 60;
+        // Set up timer to expire the holds
+        timer = new Timer();
+        task = new TimerTask() {
+            @Override
+            public void run() {
+                int cutoff = -1;
+                for (int i = 0; i < holdExpirationList.size(); i++){
+                    Pair<String, Long> expiration = holdExpirationList.get(i);
+                    if (Instant.now().getEpochSecond() - expiration.getValue() > holdLifetime){
+                        SeatHold seatHold = seatHoldMap.get(expiration.getKey());
+                        // Clear Seats
+                        theater.releaseSeats(seatHold.getSeatList());
+                        // Remove HoldID from Email look up as it is no longer in held
+                        emailToHoldId.get(seatHold.getCustomerEmail()).remove(seatHold.getHoldId());
+                        // Remove the SeatHold object from the map
+                        seatHoldMap.remove(seatHold.getHoldId());
+                        cutoff = i;
+                    }
+                    else{
+                        break;
+                    }
+                }
+                for (int i = 0; i <= cutoff; i++) {
+                    holdExpirationList.remove(i);
+                }
+            }
+        };
+        timer.scheduleAtFixedRate(task, 0, 1);
     }
 
     public Theater getTheater() {
@@ -57,7 +92,13 @@ public class TicketService {
             seats = theater.findSeats(numSeats);
         }
         if (seats == null){
-            throw new Exception("Not Enough Seats");
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.append("Requested ");
+            stringBuilder.append(numSeats);
+            stringBuilder.append(" - Available ");
+            stringBuilder.append(theater.getSeatsRemaining());
+            stringBuilder.append(" - Not Enough Seats");
+            throw new Exception(stringBuilder.toString());
         }
         theater.holdSeats(seats);
         // Generate a new Hold ID
@@ -73,6 +114,7 @@ public class TicketService {
         else {
             emailToHoldId.put(customerEmail, new HashSet<>(Arrays.asList(holdId)));
         }
+        holdExpirationList.add(new Pair<>(holdId, Instant.now().getEpochSecond()));
         return seatHold;
     }
 
@@ -88,9 +130,7 @@ public class TicketService {
             throw new Exception("Hold ID Not Found");
         }
         // Turn the Seats from Held to Reserved
-        for (Pair location : seatHold.getSeatList()) {
-            theater.setSeat(location, Seat.Reserved);
-        }
+        theater.reserveSeats(seatHold.getSeatList());
         // Generate a new Confirmation Code
         String confirmationCode = UUID.randomUUID().toString();
         // Add the SeatHold object to a mpa with the confirmation code to enable seat lookup by confirmation code
@@ -103,7 +143,7 @@ public class TicketService {
             emailToReserveId.put(customerEmail, new HashSet<>(Arrays.asList(confirmationCode)));
         }
         // Remove HoldID from Email look up as it is no longer in held
-        emailToHoldId.get(customerEmail).remove(confirmationCode);
+        emailToHoldId.get(customerEmail).remove(seatHoldId);
         // Remove the SeatHold object from the map
         seatHoldMap.remove(seatHoldId);
         return confirmationCode;
