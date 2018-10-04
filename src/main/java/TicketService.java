@@ -14,6 +14,8 @@ public class TicketService {
         theater = new Theater(rowSeatCount);
         seatHoldMap = new HashMap<>();
         seatReserveMap = new HashMap<>();
+        emailToHoldId = new HashMap<>();
+        emailToReserveId = new HashMap<>();
     }
 
     public Theater getTheater() {
@@ -57,19 +59,21 @@ public class TicketService {
         if (seats == null){
             throw new Exception("Not Enough Seats");
         }
+        theater.holdSeats(seats);
         // Generate a new Hold ID
         String holdId = UUID.randomUUID().toString();
         SeatHold seatHold = new SeatHold();
         seatHold.setSeatList(seats);
         seatHold.setCustomerEmail(customerEmail);
         seatHold.setHoldId(holdId);
+        seatHoldMap.put(holdId, seatHold);
         if (emailToHoldId.containsKey(customerEmail)) {
             emailToHoldId.get(customerEmail).add(holdId);
         }
         else {
             emailToHoldId.put(customerEmail, new HashSet<>(Arrays.asList(holdId)));
         }
-        return new SeatHold();
+        return seatHold;
     }
 
     /** * Commit seats held for a specific customer
@@ -77,9 +81,12 @@ public class TicketService {
      * @param seatHoldId the seat hold identifier
      * @param customerEmail the email address of the customer to which the seat hold is assigned
      * @return a reservation confirmation code */
-    String reserveSeats(int seatHoldId, String customerEmail) {
+    String reserveSeats(String seatHoldId, String customerEmail) throws Exception {
         // Get the SeatHold Object
         SeatHold seatHold = seatHoldMap.get(seatHoldId);
+        if (seatHold == null){
+            throw new Exception("Hold ID Not Found");
+        }
         // Turn the Seats from Held to Reserved
         for (Pair location : seatHold.getSeatList()) {
             theater.setSeat(location, Seat.Reserved);

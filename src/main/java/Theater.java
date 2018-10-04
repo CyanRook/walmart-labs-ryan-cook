@@ -25,6 +25,18 @@ public class Theater {
         return seatsRemaining;
     }
 
+    public Integer getSeatsOfType(Seat seat){
+        Integer count = 0;
+        for(ArrayList<Seat> row : seats){
+            for (Seat col : row){
+                if (col.equals(seat)){
+                    count += 1;
+                }
+            }
+        }
+        return count;
+    }
+
     public ArrayList<ArrayList<Seat>> getSeats() {
         return seats;
     }
@@ -49,7 +61,8 @@ public class Theater {
         setSeat(location.getKey(),location.getValue(), type);
     }
 
-    public ArrayList<Pair<Integer, Integer>> findContigousSeats(Integer count){
+    // TODO: Implement grabbing contiguous seats when possible
+    public ArrayList<Pair<Integer, Integer>> findContigousSeats(Integer count) {
         /* Identify ideal seats
            Criteria Used
            1. Contiguous Seats
@@ -57,123 +70,7 @@ public class Theater {
            3. Towards the Center
         */
         ArrayList<Pair<Integer, Integer>> seatList = null;
-        Integer rowId = -1;
-        // Check each Row starting at the front
-        for (ArrayList row : seats){
-            rowId += 1;
-            //  If cancellations occur, then the center might not be filled contiguously, must search over whole row.
-            Integer leftSearch = row.size()/2;
-            Integer rightSearch = (row.size()+1)/2;
-            // Search to the left
-            while (leftSearch > 0){
-                // Find First Available Seats to the left
-                while ((leftSearch > 0) && (row.get(leftSearch) != Seat.Available)){
-                    leftSearch -= 1;
-                }
-                // Jump out if we don't have any available seats to the left
-                if (row.get(leftSearch) != Seat.Available){
-                    break;
-                }
-                Integer leftBound = leftSearch;
-                Integer rightBound = leftSearch;
-                // Search For More to the left
-                while ((leftBound > 0) && (row.get(leftBound) == Seat.Available)){
-                    leftBound -= 1;
-                }
-                // Have to check to the right on the first pass
-                while ((rightBound < row.size()-1) && (row.get(rightBound) == Seat.Available)){
-                    rightBound += 1;
-                }
-                // If we don't have available, move back
-                if (row.get(leftBound) != Seat.Available){
-                    leftBound += 1;
-                }
-                // If we don't have available, move back
-                if (row.get(rightBound) != Seat.Available){
-                    rightBound -= 1;
-                }
-                // Update overall search bounds
-                leftSearch = leftBound;
-                rightSearch = max(rightBound, rightSearch);
-                if (leftBound - rightBound + 1 >= count){
-                    if (leftBound + (count/2) < row.size() / 2){
-                        seatList = new ArrayList<>();
-                        for (int i = leftBound; i < leftBound + count; i++){
-                            seatList.add(new Pair<>(rowId, i));
-                        }
-                    }
-                    else if ((row.size()+1)/2 < rightBound - (count/2)){
-                        seatList = new ArrayList<>();
-                        for (int i = rightBound; i > rightBound - count; i--){
-                            seatList.add(new Pair<>(rowId, i));
-                        }
-                    }
-                    else{
-                        seatList = new ArrayList<>();
-                        for (int i = 0; i < count; i--){
-                            seatList.add(new Pair<>(rowId, (row.size()/2)-(count/2)+i));
-                        }
-                    }
-                    break;
-                }
-            }
-            // Search to the right
-            while (rightSearch < row.size()-1){
-                while ((rightSearch < row.size()-1) && (row.get(rightSearch) != Seat.Available)){
-                    rightSearch += 1;
-                }
-                // Jump out if we don't have any available seats to the left
-                if (row.get(leftSearch) != Seat.Available){
-                    break;
-                }
-                Integer leftBound = leftSearch;
-                Integer rightBound = leftSearch;
-                // Search For More to the left
-                while ((leftBound > 0) && (row.get(leftBound) == Seat.Available)){
-                    leftBound -= 1;
-                }
-                // Have to check to the right on the first pass
-                while ((rightBound < row.size()-1) && (row.get(rightBound) == Seat.Available)){
-                    rightBound += 1;
-                }
-                // If we don't have available, move back
-                if (row.get(leftBound) != Seat.Available){
-                    leftBound += 1;
-                }
-                // If we don't have available, move back
-                if (row.get(rightBound) != Seat.Available){
-                    rightBound -= 1;
-                }
-                // Update overall search bounds
-                leftSearch = leftBound;
-                rightSearch = max(rightBound, rightSearch);
-                if (leftBound - rightBound + 1 >= count){
-                    if (leftBound + (count/2) < row.size() / 2){
-                        seatList = new ArrayList<>();
-                        for (int i = leftBound; i < leftBound + count; i++){
-                            seatList.add(new Pair<>(rowId, i));
-                        }
-                    }
-                    else if ((row.size()+1)/2 < rightBound - (count/2)){
-                        seatList = new ArrayList<>();
-                        for (int i = rightBound; i > rightBound - count; i--){
-                            seatList.add(new Pair<>(rowId, i));
-                        }
-                    }
-                    else{
-                        seatList = new ArrayList<>();
-                        for (int i = 0; i < count; i--){
-                            seatList.add(new Pair<>(rowId, (row.size()/2)-(count/2)+i));
-                        }
-                    }
-                    break;
-                }
-            }
-            if (seatList != null){
-                break;
-            }
-        }
-        return seatList;
+        return null;
     }
 
     public ArrayList<Pair<Integer, Integer>> findSeats(Integer count) {
@@ -196,12 +93,14 @@ public class Theater {
                 if (seatList.size() == count){
                     break;
                 }
-                if (row.get(rightSearch) == Seat.Available){
+                if ((row.get(rightSearch) == Seat.Available) && (leftSearch != rightSearch)){
                     seatList.add(new Pair<>(rowId, rightSearch));
                 }
                 if (seatList.size() == count){
                     break;
                 }
+                leftSearch -= 1;
+                rightSearch += 1;
             }
             if (seatList.size() == count){
                 break;
@@ -212,6 +111,24 @@ public class Theater {
         }
         else {
             return null;
+        }
+    }
+
+    public void holdSeats(ArrayList<Pair<Integer, Integer>> seatList) throws Exception{
+        for (Pair seat : seatList){
+            if (getSeat(seat) != Seat.Available) {
+                throw new Exception("Trying to Reserve an Unavailable Seat");
+            }
+            setSeat(seat, Seat.Held);
+        }
+    }
+
+    public void reserveSeats(ArrayList<Pair<Integer, Integer>> seatList) throws Exception{
+        for (Pair seat : seatList){
+            if (getSeat(seat) != Seat.Available) {
+                throw new Exception("Trying to Reserve an Unavailable Seat");
+            }
+            setSeat(seat, Seat.Reserved);
         }
     }
 }

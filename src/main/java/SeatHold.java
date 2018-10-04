@@ -24,7 +24,7 @@ public class SeatHold {
     }
 
     public String getHoldId() {
-        return customerEmail;
+        return holdId;
     }
 
     public void setHoldId(String holdId) {
